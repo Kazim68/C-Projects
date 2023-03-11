@@ -1,0 +1,6 @@
+Shirt
+Jeans
+Jacket
+Trouser
+Kurta
+Sneaker

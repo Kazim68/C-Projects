@@ -1,0 +1,26 @@
+{
+  "files.associations": {
+    "*.tcc": "cpp",
+    "functional": "cpp",
+    "random": "cpp",
+    "limits": "cpp",
+    "istream": "cpp",
+    "ostream": "cpp",
+    "cstdlib": "cpp",
+    "algorithm": "cpp",
+    "cmath": "cpp",
+    "cstdio": "cpp",
+    "cwchar": "cpp",
+    "cwctype": "cpp",
+    "string": "cpp",
+    "iosfwd": "cpp",
+    "streambuf": "cpp",
+    "typeinfo": "cpp",
+    "cctype": "cpp",
+    "cerrno": "cpp",
+    "clocale": "cpp",
+    "cstdarg": "cpp",
+    "cstddef": "cpp",
+    "iostream": "cpp"
+  }
+}
