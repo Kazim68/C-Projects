@@ -3,6 +3,7 @@
 #include <conio.h>
 #include <string>
 #include <cmath>
+#include <fstream>
 using namespace std;
 
 // pre game menu and it's functionalities
@@ -11,6 +12,8 @@ void menu();
 void multiplayermode();
 int option(int optcount, int x, int y);
 void mode(int opt);
+void newgame();
+void gamereset();
 void continuekey(int x, int y);
 bool intvalid(string);
 void levelendscreen(string text);
@@ -147,6 +150,21 @@ void printplayer2withdirection();
 void mpbulletplayer1(int x, int y);
 void mpbulletplayer2(int x, int y);
 
+// sign in/up
+void startscreen();
+void signin();
+void signup();
+bool uniquename(string name);
+string usernameinputscreen();
+bool format(string word);
+
+// file handling for storing player progress
+void loaddata();
+void loadplayerdata(string name);
+string linedata(string line, int col);
+bool converttobool(string value);
+void writedata();
+
 // global declarations
 
 int px, py, ex, ey, ex2, ey2, ex3, ey3, ex4, ey4, ex5, ey5, ex6, ey6;                                  // to keep track of coordiantes of characters
@@ -163,15 +181,15 @@ string playerdirection = "right", enemy1direction = "down", enemy2direction = "d
        enemy3direction = "right", enemy5direction = "left",
        enemy6direction = "right"; // to keep track of direction of characters
 
-string playername1 = "Player";
+string playername1;
 
 // level initializers
 bool level1running = false, level2running = false, level3running = false;          // to keep track of levels
 bool enemy1alive, enemy2alive, enemy3alive, playeralive, enemy5alive, enemy6alive; // to check whether character is alive or not
-bool level1complete = false, level2complete = false, level3complete = false;       // to keep track of level completion
+bool level1complete, level2complete, level3complete;                               // to keep track of level completion
 bool startenemy6;                                                                  // movement of enemy 6 starts when player first time matches y coordinate with them
 bool zombiealive[10], level3zombiealive[5];
-bool multiplayer = false, mprunning = false; // multiplayer checking and loop
+bool multiplayer, mprunning = false; // multiplayer checking and loop
 
 // bullets
 int rightbulletsX[1000] = {-1}, rightbulletsY[1000] = {-1}, leftbulletsX[1000] = {-1}, leftbulletsY[1000] = {-1}; // player bullets
@@ -179,6 +197,12 @@ bool is_player_right_bullet_active[1000], is_player_left_bullet_active[1000];
 int enemyrightbulletsX[10000], enemyrightbulletsY[10000], enemyleftbulletsX[10000], enemyleftbulletsY[10000]; // enemy bullets
 bool is_enemy_right_bullet_active[10000], is_enemy_left_bullet_active[10000];
 
+// players status data
+string playersdata[100][5];
+int counter = 0, playercount = 0;
+bool foundplayer = false;
+
+// zombies
 int zombiex[10], zombiey[10]; // level 2 zombies xy coordinates
 int level3zombiesx[5], level3zombiesy[5];
 
@@ -191,7 +215,8 @@ string player1direction = "right", player2direction = "left"; // to keep track o
 
 int main()
 {
-    menu();
+    loaddata();
+    startscreen();
 }
 
 void screenframe() // main set screen interface of each level
@@ -1909,18 +1934,25 @@ void touchkey(int x, int y) // determine whether player gets the key and advance
         {
             level1complete = true;
             level1running = false;
+            playersdata[playercount][1] = "1";
+            writedata();
             levelendscreen("Level 1 Completed!");
         }
         else if (level2running)
         {
             level2complete = true;
             level2running = false;
+            playersdata[playercount][2] = "1";
+            writedata();
             levelendscreen("Level 2 Completed!");
         }
         else if (level3running)
         {
             level3complete = true;
             multiplayer = true;
+            playersdata[playercount][3] = "1";
+            playersdata[playercount][4] = "1";
+            writedata();
             levelendscreen("Level 3 Completed!");
         }
     }
@@ -2584,6 +2616,50 @@ void printplayer2_left(int x, int y) // print player 2 facing left side of conso
     print_by_3_character(body, 3, "\33[32m", x, y);
 }
 
+void gamereset() // erases previous record of player
+{
+    for (int i = 1; i < 5; i++)
+    {
+        playersdata[playercount][i] = "0";
+    }
+}
+
+void newgame() // confirmation for starting the game from beginning
+{
+    system("cls");
+    string choice;
+    int c = 1;
+    bool flag = false;
+    gotoxy(75, 12);
+    cout << "\33[31m"
+         << "Are you sure? (Y/N): ";
+    while (!flag)
+    {
+        getline(cin, choice);
+        if (choice == "Y" || choice == "y")
+        {
+            flag = true;
+            gamereset();
+            writedata();
+            level1complete = false;
+            level2complete = false;
+            level3complete = false;
+            multiplayer = false;
+            continuekey(70, 12 + c + 1);
+            menu();
+        }
+        else if (choice == "N" || choice == "n")
+        {
+            flag = true;
+            menu();
+        }
+        gotoxy(75, 12 + c);
+        cout << "\33[31m"
+             << "Invalid Input: ";
+        c++;
+    }
+}
+
 void mode(int opt) // selects mode of game
 {
     if (opt == 1)
@@ -2596,12 +2672,15 @@ void mode(int opt) // selects mode of game
     }
     else if (opt == 3)
     {
-        system("cls");
-        exit(0);
+        newgame();
+    }
+    else if (opt == 4)
+    {
+        startscreen();
     }
 }
 
-void menu() // prints main starting menu if game
+void menu() // prints main starting menu of game
 {
     header();
     gotoxy(75, 20);
@@ -2612,9 +2691,208 @@ void menu() // prints main starting menu if game
          << "2. Multiplayer" << endl;
     gotoxy(75, 22);
     cout << "\33[32m"
-         << "3. Exit" << endl;
-    int opt = option(3, 75, 23);
+         << "3. New Game" << endl;
+    gotoxy(75, 23);
+    cout << "\33[32m"
+         << "4. Exit" << endl;
+    int opt = option(4, 75, 24);
     mode(opt);
+}
+
+void startscreen() // prints sign up/in screen
+{
+    system("cls");
+    gotoxy(70, 10);
+    for (int i = 0; i < 20; i++)
+    {
+        cout << "*";
+    }
+    gotoxy(75, 11);
+    cout << "\33[33m"
+         << "1. Sign in ";
+    gotoxy(75, 12);
+    cout << "\33[33m"
+         << "2. Sign up ";
+    gotoxy(75, 13);
+    cout << "\33[33m"
+         << "3. Quit " << endl;
+    int opt = option(3, 70, 14);
+    if (opt == 1)
+    {
+        signin();
+    }
+    else if (opt == 2)
+    {
+        signup();
+    }
+    else if (opt == 3)
+    {
+        system("cls");
+        exit(0);
+    }
+}
+
+void signup() // creates a new user to the game
+{
+    bool found = false;
+    string name;
+    while (!found)
+    {
+        name = usernameinputscreen();
+        if (uniquename(name))
+        {
+            found = true;
+            break;
+        }
+    }
+    playercount = counter - 1;
+    playersdata[playercount][0] = name;
+    gamereset();
+    counter++;
+    writedata();
+    continuekey(75, 15);
+    startscreen();
+}
+
+void signin() // sign in players
+{
+    foundplayer = false;
+    loadplayerdata(usernameinputscreen());
+    if (foundplayer)
+    {
+        menu();
+    }
+    else
+    {
+        startscreen();
+    }
+}
+
+bool uniquename(string name) // checks whether a username is already taken or not
+{
+    for (int i = 0; i < counter - 1; i++)
+    {
+        if (playersdata[i][0] == name)
+        {
+            return false;
+        }
+    }
+    return true;
+}
+
+string usernameinputscreen() // inputs username
+{
+    system("cls");
+    string name;
+    bool found = false;
+    while (!found)
+    {
+        system("cls");
+        gotoxy(70, 12);
+        for (int i = 0; i < 30; i++)
+        {
+            cout << "\33[32m"
+                 << "*";
+        }
+        gotoxy(75, 13);
+        cout << "\33[33m"
+             << "Enter username: ";
+        getline(cin, name);
+        found = format(name);
+    }
+    return name;
+}
+
+bool format(string word) // validates input word based on ascii characters
+{
+    for (int i = 0; word[i] != '\0'; i++)
+    {
+        if ((word[i] < 65 || word[i] > 90) && (word[i] < 97 || word[i] > 122))
+        {
+            return false;
+        }
+    }
+    return true;
+}
+
+void loaddata() // loads player status from file
+{
+    string line, tempname;
+    fstream file;
+    file.open("data.txt", ios::in);
+    while (!file.eof())
+    {
+        getline(file, line);
+        for (int i = 1; i < 6; i++)
+        {
+            playersdata[counter][i - 1] = linedata(line, i);
+        }
+        counter++;
+    }
+    file.close();
+}
+
+void writedata() // writes player status data
+{
+    fstream file;
+    file.open("data.txt", ios::out);
+    for (int i = 0; i < counter - 1; i++)
+    {
+        for (int j = 0; j < 5; j++)
+        {
+            file << playersdata[i][j] << ",";
+        }
+        file << "\n";
+    }
+    file.close();
+}
+
+string linedata(string line, int col) // parse data from a line
+{
+    int c = 0;
+    string data = "";
+    for (int i = 0; line[i] != '\0'; i++)
+    {
+        if (line[i] == ',')
+        {
+            c++;
+        }
+        else if (c == col - 1)
+        {
+            data += line[i];
+        }
+    }
+    return data;
+}
+
+void loadplayerdata(string name) // gets the data of the current player
+{
+    for (int i = 0; i < counter - 1; i++)
+    {
+        if (playersdata[i][0] == name)
+        {
+            foundplayer = true;
+            playercount = i;
+            playername1 = name;
+            level1complete = converttobool(playersdata[i][1]);
+            level2complete = converttobool(playersdata[i][2]);
+            level3complete = converttobool(playersdata[i][3]);
+            multiplayer = converttobool(playersdata[i][4]);
+            break;
+        }
+    }
+}
+
+bool converttobool(string value) // converts string to bool
+{
+    if (value == "0")
+    {
+        return false;
+    }
+    else if (value == "1")
+    {
+        return true;
+    }
 }
 
 int option(int optcount, int x, int y) // takes in user input of option
